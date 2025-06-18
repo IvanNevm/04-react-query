@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import SearchBar from '../SearchBar/SearchBar';
 import MovieGrid from '../MovieGrid/MovieGrid';
 import MovieModal from '../MovieModal/MovieModal';
-import { fetchMovies } from '../../services/moviesService';
+import { fetchMovies } from '../../services/movieService';
 import type { Movie, MovieResponse } from '../../types/movie';
 import styles from './App.module.css';
 import toast from 'react-hot-toast';
