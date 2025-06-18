@@ -5,12 +5,17 @@ import styles from './MovieList.module.css';
 
 interface MovieListProps {
   movies: Movie[];
+  onSelectMovie?: (movie: Movie) => void;
 }
 
-const MovieList: React.FC<MovieListProps> = ({ movies }) => (
+const MovieList: React.FC<MovieListProps> = ({ movies, onSelectMovie }) => (
   <ul className={styles.list}>
     {movies.map(movie => (
-      <li key={movie.id}>
+      <li
+        key={movie.id}
+        onClick={() => onSelectMovie?.(movie)}
+        style={{ cursor: onSelectMovie ? 'pointer' : 'default' }}
+      >
         <MovieCard movie={movie} />
       </li>
     ))}

@@ -21,7 +21,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => (
       <div className={styles.placeholder}>No Image</div>
     )}
     <h3 className={styles.title}>{movie.title}</h3>
-    <p className={styles.rating}>⭐ {movie.vote_average}</p>
+    
   </div>
 );
 

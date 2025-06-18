@@ -1,71 +1,79 @@
-import React, { useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
+import SearchBar from '../SearchBar/SearchBar';
+import MovieGrid from '../MovieGrid/MovieGrid';
+import MovieModal from '../MovieModal/MovieModal';
+import { fetchMovies } from '../../api/movies';
+import type { Movie, MovieResponse } from '../../types/movie';
+import styles from './App.module.css';
+import toast from 'react-hot-toast';
 import ReactPaginate from 'react-paginate';
 
-import { fetchMovies } from '../../api/movies';
-import type { MovieResponse } from '../../types/movie';
-import MovieList from '../MovieList/MovieList';
-import css from './App.module.css';
-
-const App: React.FC = () => {
+const App = () => {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
 
-  // Зверніть увагу: видалено keepPreviousData
-  const { data, isLoading, isError } = useQuery<
-    MovieResponse,
-    Error,
-    MovieResponse,
-    [string, string, number]
-  >({
-    queryKey: ['movies', searchTerm, page],
-    queryFn: () => fetchMovies(searchTerm, page),
-    enabled: Boolean(searchTerm.trim()),
-  });
-
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    setSearchTerm(query);
-    setPage(1);
+  const handleSearch = async (searchQuery: string, pageNumber = 1) => {
+    setLoading(true);
+    setError(false);
+    try {
+      const response: MovieResponse = await fetchMovies(searchQuery, pageNumber);
+      if (response.results.length === 0) {
+        toast.error('No movies found for your request.');
+      }
+      setMovies(response.results);
+      setTotalPages(response.total_pages);
+      setPage(pageNumber);
+      setQuery(searchQuery);
+    } catch (err) {
+      console.error(err);
+      setError(true);
+      toast.error('Something went wrong. Try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const totalPages = data?.total_pages ?? 0;
+  const handlePageChange = ({ selected }: { selected: number }) => {
+    const newPage = selected + 1;
+    handleSearch(query, newPage);
+  };
 
   return (
-    <div className={css.container}>
-      <h1>Пошук фільмів</h1>
-      <form onSubmit={handleSubmit} className={css.form}>
-        <input
-          className={css.input}
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.currentTarget.value)}
-          placeholder="Введіть назву..."
-        />
-        <button className={css.button} type="submit">
-          Шукати
-        </button>
-      </form>
+    <div className={styles.app}>
+      <Toaster />
+      <SearchBar onSubmit={(q) => handleSearch(q, 1)} />
 
-      {isLoading && <p>Завантаження...</p>}
-      {isError && <p>Сталася помилка.</p>}
+      {loading && <p>Loading...</p>}
+      {error && <p>Something went wrong!</p>}
 
-      {data && <MovieList movies={data.results} />}
+      {movies.length > 0 && (
+        <>
+          <MovieGrid movies={movies} onSelect={setSelectedMovie} />
+          {totalPages > 1 && (
+            <ReactPaginate
+              previousLabel="←"
+              nextLabel="→"
+              breakLabel="..."
+              pageCount={totalPages > 500 ? 500 : totalPages} // max TMDB сторінок 500
+              pageRangeDisplayed={5}
+              marginPagesDisplayed={1}
+              onPageChange={handlePageChange}
+              containerClassName={styles.pagination}
+              activeClassName={styles.active}
+              forcePage={page - 1}
+            />
+          )}
+        </>
+      )}
 
-      {totalPages > 1 && (
-        <ReactPaginate
-          pageCount={totalPages}
-          pageRangeDisplayed={5}
-          marginPagesDisplayed={1}
-          onPageChange={({ selected }) => setPage(selected + 1)}
-          forcePage={page - 1}
-          containerClassName={css.pagination}
-          activeClassName={css.active}
-          nextLabel="→"
-          previousLabel="←"
-        />
+      {selectedMovie && (
+        <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
       )}
     </div>
   );
